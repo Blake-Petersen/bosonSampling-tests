@@ -3,7 +3,7 @@ library(BosonSampling)
 bosons <- 10
 modes <- 1000
 sample_num <- 100
-set.seed(7)
+set.seed(2345)
 
 unitary_matrix_sub <- randomUnitary(modes)[, 1:bosons]
 outcomes <- matrix(bosonSampler(unitary_matrix_sub, sample_num)$values, nrow = bosons, ncol = sample_num)
@@ -23,3 +23,10 @@ xvals <- matrix(1:modes)
 yvals <- apply(apply(outcomes, 1, tabulate, nbins = modes), 1, sum)
 matplot(xvals, yvals, pch = 20, t = "p", 
         xlab = "output mode", ylab = "frequency")
+
+# sample from uniform distribution
+bosons <- 3
+modes <- 10
+x <- sample(modes, bosons, replace = TRUE)
+dist_u <- vector(mode = "numeric", length = modes)
+dist_u[x] <- dist_u[x] + 1
