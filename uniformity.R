@@ -1,32 +1,73 @@
 library(BosonSampling)
-
-bosons <- 10
-modes <- 1000
-sample_num <- 100
 set.seed(2345)
 
-unitary_matrix_sub <- randomUnitary(modes)[, 1:bosons]
-outcomes <- matrix(bosonSampler(unitary_matrix_sub, sample_num)$values, nrow = bosons, ncol = sample_num)
-#outcomes <- data.frame(run = 1:sample_num, t(apply(outcomes, 2, FUN = sort)))
+# Aaronson and Arkhipov's estimator for distinguishing bosonSampling 
+# distribution from uniform dist
+estimator <- function(outcome_matrix) {
+  tmp <- apply(outcome_matrix, 1, function(x) {norm(x, type = "2")^2})
+  n <- nrow(outcome_matrix)
+  r <- prod(tmp)
+  r_star <- r / (n^n)
+  r_star
+}
 
-# Convert to Fock basis.
-#outcomes.fock <- matrix(0, nrow = sample_num, ncol = bosons)
-#for (i in 1:sample_num) {
-#  for (j in 1:bosons) {
-#    outcomes.fock[i, j] <- length(which(outcomes[, i] == j))
-#  }
-#}
+bosons <- 20
+modes <- 500
+sample_num <- 100
 
-xvals <- matrix(1:modes)
-#yvals <- matrix(apply(outcomes, 1, tabulate, nbins = modes), nrow = modes, ncol = bosons)
+# Using BosonSampling's inbuilt unitary generator
+sampling_matrix <- randomUnitary(modes)[, 1:bosons]
 
-yvals <- apply(apply(outcomes, 1, tabulate, nbins = modes), 1, sum)
-matplot(xvals, yvals, pch = 20, t = "p", 
-        xlab = "output mode", ylab = "frequency")
+# Using unitary generator that specifically mentions Haar randomness
+smatrix2 <- pracma::randortho(modes)[, 1:bosons]
 
-# sample from uniform distribution
-bosons <- 3
-modes <- 10
-x <- sample(modes, bosons, replace = TRUE)
-dist_u <- vector(mode = "numeric", length = modes)
-dist_u[x] <- dist_u[x] + 1
+rstar_d <- vector(mode = "numeric", length = sample_num)
+rstar_e <- vector(mode = "numeric", length = sample_num)
+rstar_u <- vector(mode = "numeric", length = sample_num)
+for(i in 1:sample_num) {
+  # Sample from BosonSampling distribution
+  samp_d <- bosonSampler(sampling_matrix, 1)$values
+  A_d <- sampling_matrix[samp_d, ]
+  rstar_d[i] <- estimator(A_d)
+  
+  # Sample from BosonSampling distribution
+  samp_e <- bosonSampler(smatrix2, 1)$values
+  A_e <- smatrix2[samp_e, ]
+  rstar_e[i] <-estimator(A_e)
+  
+  # Sample from uniform distribution
+  samp_u <- sample(modes, bosons, replace = TRUE)
+  A_u <- sampling_matrix[samp_u, ]
+  rstar_u[i] <- estimator(A_u)
+}
+
+# Print density plot to file
+pdf('uniformity.pdf')
+# Uniform distribution
+plot(density(rstar_u), 
+     col = "red",
+     main = "Comparison of uniform and BosonSampling distributions",
+     sub = paste("n =", bosons, " m =", modes, " samples =", sample_num, sep = " "),
+     ylab = "Probability Density",
+     xlab = "R*"
+     )
+
+# BosonSampling distribution, pracma::randOrtho function
+lines(density(rstar_e), 
+      col = "blue",
+      lt = 2
+      ) 
+
+# BosonSampling distribution, bosonSampling::randomUnitary function
+lines(density(rstar_d), 
+      col = "green",
+      lt = 4
+      ) 
+legend("topright", 
+       legend = c("Uniform", "BosonSampling, randOrtho", "BosonSampling, randomUnitary"),
+       col = c("red", "blue", "green"),
+       lt = c(1,2,4),
+       cex = 0.6
+       )
+
+dev.off()
