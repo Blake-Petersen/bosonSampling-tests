@@ -19,9 +19,6 @@ U <- diag(modes)
 U <- compose_element(U, beamsplitter, 1, 2)
 U <- compose_element(U, beamsplitter, 3, 4)
 
-# Can of course be any unitary eg:
-# U <- randomUnitary(modes)
-
 A <- U[, 1:bosons]
 outcomes <- bosonSampler(A, sample_num)$values
 
