@@ -6,17 +6,17 @@ set.seed(2345)
 # Huang et. al. Statistical Analysis for Collision-free Boson Sampling
 
 correlator <- function(i, j, amat) {
-  mean(amat[i, ] * amat[j, ], na.rm = TRUE) 
+  mean(amat[i, ] * amat[j, ], na.rm = TRUE)
   - (mean(amat[i, ], na.rm = TRUE) * mean(amat[j, ], na.rm = TRUE))
 }
 
 coefficient_variation <- function(c) {
-  sqrt(mean(c^2) - (mean(c)^2)) / mean(c)
+  sqrt(mean(c ^ 2) - (mean(c) ^ 2)) / mean(c)
 }
 
 skewness <- function(c) {
-  ((mean(c^3) - 3 * mean(c) * mean(c^2) + 2 * mean(c)^3) 
-    / sqrt((mean(c^2) - mean(c)^2)^3))
+  ( (mean(c ^ 3) - 3 * mean(c) * mean(c ^ 2) + 2 * mean(c) ^ 3)
+    / sqrt( (mean(c ^ 2) - mean(c) ^ 2) ^ 3) )
 }
 
 # Change to collision-free samples in fock basis
@@ -38,8 +38,8 @@ find_2mode_correlations <- function (modes, outcomes) {
   correlations <- vector(mode = "numeric", length = choose(modes, 2))
   counter <- 1
   for (j in 2:modes) {
-    for (i in 1:(j-1)) {
-      correlations[counter] <- correlator(i, j, outcomes_fock)
+    for (i in 1:(j - 1)) {
+      correlations[counter] <- correlator(i, j, outcomes)
       counter <- counter + 1
     }
   }
@@ -56,29 +56,31 @@ skew <- vector(mode = "numeric", length = network_num)
 for (nwrk in 1:network_num) {
   network_unitary <- randomUnitary(modes)
   sampling_matrix <- network_unitary[, 1:bosons]
-  
+
   outcomes <- bosonSampler(sampling_matrix, sample_num)$values
-  
+
   # Change to collision-free fock basis
   outcomes_fock <- focker_c_free(bosons, modes, sample_num, outcomes)
-  
+
   # Calculate 2-mode correlations (all of them (probably overkill?))
   correlations <- find_2mode_correlations(modes, outcomes_fock)
-  
+
   co_var[nwrk] <- coefficient_variation(correlations)
   skew[nwrk] <- skewness(correlations)
 }
 
-pdf("correlation_stats.pdf")
+
 res <- data.frame(co_var, skew)
-p <- ggplot(res, aes(x = co_var, y = skew)) 
-p <- p + xlim(-1.2, 0) + ylim(-6,4)
-#p <- p + stat_density_2d()
-p <- p + geom_point(aes(x = mean(co_var), y = mean(skew)), color = "magenta", size = 4, alpha = 1)
-p <- p + geom_point(size = 1, alpha = 0.5, color = "darkslateblue") 
-p <- p + labs(x = "Coefficient of Variation", y = "Skewness", 
-              title = "Statistical Analysis of Boson Sampling")
+pdf("2mode_correlation.pdf")
+p <- ggplot(res, aes(x = co_var, y = skew))
+p <- p + xlim(-1.2, 0) + ylim(-6, 4)
+p <- p + stat_ellipse(color = "darkslateblue", alpha = 0.5)
+p <- p + geom_point(size = 1, alpha = 0.66, color = "slateblue")
+p <- p + geom_point(aes(x = mean(co_var), y = mean(skew)),
+                    color = "black", fill = "white",
+                    shape = 21, size = 1, stroke = 0.5)
+p <- p + labs(x = "Coefficient of Variation", y = "Skewness",
+              title = "Statistical Analysis of Boson Sampling",
+              subtitle = paste("N =", bosons, " M =", modes, sep = " "))
 p
-
 dev.off()
-

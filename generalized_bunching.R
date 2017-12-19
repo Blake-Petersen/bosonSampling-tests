@@ -4,7 +4,7 @@ set.seed(2345)
 # Implements Shchesnovich's generalised bunching test
 
 bosons <- 4L # N in the paper
-co_bin <- 2L # L 
+co_bin <- 2L # L
 modes <- 8L  # M
 
 bunch_bin <- modes - co_bin # K in the paper
@@ -17,7 +17,7 @@ obs <- 2
 results <- matrix(nrow = network_num, ncol = 2)
 for (u_n in 1:network_num) {
   network_unitary <- randomUnitary(modes)
-  
+
   H <- matrix(data = 0, nrow = bosons, ncol = bosons)
   for (i in 1:bosons) {
     for (j in 1:bosons) {
@@ -27,10 +27,10 @@ for (u_n in 1:network_num) {
     }
   }
   results[u_n, expect] <- Mod(cxPerm(H))
-  
+
   sampling_matrix <- network_unitary[, 1:bosons]
   outcomes <- bosonSampler(sampling_matrix, sample_num)$values > bunch_bin
-  
+
   unbunched <- vector(mode = "logical", length = sample_num)
   for (i in 1:sample_num) {
     unbunched[i] <- TRUE %in% outcomes[, i]
@@ -42,7 +42,7 @@ p_expect <- mean(results[, expect])
 p_obs <- mean(results[, obs])
 p_obs_err <- sd(results[, obs])
 
-pdf("bunching.pdf")
+pdf("generalized_bunching.pdf")
 plot(results[, expect], results[, obs],
      main = "Observed bunching compared to indistinguishable bosons",
      sub = paste("<p_b> =", format(round(p_expect, 3), nsmall = 2),
