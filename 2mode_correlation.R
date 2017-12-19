@@ -82,5 +82,6 @@ p <- p + geom_point(aes(x = mean(co_var), y = mean(skew)),
 p <- p + labs(x = "Coefficient of Variation", y = "Skewness",
               title = "Statistical Analysis of Boson Sampling",
               subtitle = paste("N =", bosons, " M =", modes, sep = " "))
-p
+print(p)
 dev.off()
+
