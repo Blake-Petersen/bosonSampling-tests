@@ -1,9 +1,11 @@
 library(BosonSampling)
 library(ggplot2)
-
 set.seed(2345)
 
 # Huang et. al. Statistical Analysis for Collision-free Boson Sampling
+
+#==============================================================================
+# FUNCTIONS
 
 correlator <- function(i, j, amat) {
   mean(amat[i, ] * amat[j, ], na.rm = TRUE)
@@ -11,7 +13,7 @@ correlator <- function(i, j, amat) {
 }
 
 coefficient_variation <- function(c) {
-  sqrt(mean(c ^ 2) - (mean(c) ^ 2)) / mean(c)
+  sd(c) / mean(c)
 }
 
 skewness <- function(c) {
@@ -34,6 +36,7 @@ focker_c_free <- function(bosons, modes, sample_num, amat) {
   fock
 }
 
+# Calculate 2-mode correlations (all of them (probably overkill?))
 find_2mode_correlations <- function (modes, outcomes) {
   correlations <- vector(mode = "numeric", length = choose(modes, 2))
   counter <- 1
@@ -54,8 +57,11 @@ uniform_sampler <- function (modes, bosons, sample_num) {
   outcomes
 }
 
+#==============================================================================
+# "MAIN"
+
 bosons <- 5L # N
-modes <- 32L  # M
+modes <- 32L # M
 sample_num <- 2000L # How many samples for each network
 network_num <- 200L # How many Haar random networks to sample
 
@@ -74,9 +80,8 @@ for (nwrk in 1:network_num) {
       t_boson = bosonSampler(sampling_matrix, sample_num)$values,
       t_uniform = uniform_sampler(modes, bosons, sample_num)
     )
-    # Change to collision-free fock basis
+    
     outcomes <- focker_c_free(bosons, modes, sample_num, outcomes)
-    # Calculate 2-mode correlations (all of them (probably overkill?))
     correlations <- find_2mode_correlations(modes, outcomes)
     
     co_var[nwrk, t] <- coefficient_variation(correlations)
@@ -84,6 +89,8 @@ for (nwrk in 1:network_num) {
   }
 }
 
+#==============================================================================
+# OUTPUT
 
 stats_b <- data.frame(Type = "Boson", 
                       co_var = co_var[, t_boson],
@@ -107,11 +114,10 @@ p <- p + geom_point(data = centroids,
                     color = "black", fill = "white",
                     shape = 21, size = 1, stroke = 0.5)
 p <- p + labs(x = "Coefficient of Variation", y = "Skewness",
-              title = "Statistical Analysis of Boson Sampling",
+              title = "Analysis of Two-Mode Correlations for Collision-Free Sampling",
               subtitle = paste("N =", bosons, " M =", modes, sep = " "))
 
 
 pdf("2mode_correlation.pdf")
 print(p)
 dev.off()
-
