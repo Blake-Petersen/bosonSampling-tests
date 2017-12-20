@@ -72,7 +72,7 @@ for (nwrk in 1:network_num) {
     outcomes <- switch(
       t,
       t_boson = bosonSampler(sampling_matrix, sample_num)$values,
-      t_uniform = outcomes <- uniform_sampler(modes, bosons, sample_num)
+      t_uniform = uniform_sampler(modes, bosons, sample_num)
     )
     # Change to collision-free fock basis
     outcomes <- focker_c_free(bosons, modes, sample_num, outcomes)
@@ -95,7 +95,7 @@ stats_u <- data.frame(Type = "Uniform",
 )
 tot_stats <- rbind(stats_b, stats_u)
 
-centroids <- aggregate(cbind(tot_stats$co_var, tot_stats$skew)~tot_stats$type, tot_stats, mean)
+centroids <- aggregate(cbind(tot_stats$co_var, tot_stats$skew)~tot_stats$Type, tot_stats, mean)
 
 colnames(centroids) <- c("Type", "co_var", "skew")
 
