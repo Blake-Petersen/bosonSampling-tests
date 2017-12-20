@@ -46,42 +46,72 @@ find_2mode_correlations <- function (modes, outcomes) {
   correlations
 }
 
+uniform_sampler <- function (modes, bosons, sample_num) {
+  outcomes <- matrix(nrow = bosons, ncol = sample_num)
+  for (i in 1:sample_num) {
+    outcomes[, i] <- sample(modes, bosons)
+  }
+  outcomes
+}
+
 bosons <- 5L # N
 modes <- 32L  # M
 sample_num <- 2000L # How many samples for each network
 network_num <- 200L # How many Haar random networks to sample
 
-co_var <- vector(mode = "numeric", length = network_num)
-skew <- vector(mode = "numeric", length = network_num)
+types <- 2L
+t_boson <- 1L
+t_uniform <- 2L
+
+co_var <- matrix(nrow = network_num, ncol = types)
+skew <- matrix(nrow = network_num, ncol = types)
 for (nwrk in 1:network_num) {
   network_unitary <- randomUnitary(modes)
   sampling_matrix <- network_unitary[, 1:bosons]
-
-  outcomes <- bosonSampler(sampling_matrix, sample_num)$values
-
-  # Change to collision-free fock basis
-  outcomes_fock <- focker_c_free(bosons, modes, sample_num, outcomes)
-
-  # Calculate 2-mode correlations (all of them (probably overkill?))
-  correlations <- find_2mode_correlations(modes, outcomes_fock)
-
-  co_var[nwrk] <- coefficient_variation(correlations)
-  skew[nwrk] <- skewness(correlations)
+  for (t in 1:types) {
+    outcomes <- switch(
+      t,
+      t_boson = bosonSampler(sampling_matrix, sample_num)$values,
+      t_uniform = outcomes <- uniform_sampler(modes, bosons, sample_num)
+    )
+    # Change to collision-free fock basis
+    outcomes <- focker_c_free(bosons, modes, sample_num, outcomes)
+    # Calculate 2-mode correlations (all of them (probably overkill?))
+    correlations <- find_2mode_correlations(modes, outcomes)
+    
+    co_var[nwrk, t] <- coefficient_variation(correlations)
+    skew[nwrk, t] <- skewness(correlations)
+  }
 }
 
 
-res <- data.frame(co_var, skew)
-pdf("2mode_correlation.pdf")
-p <- ggplot(res, aes(x = co_var, y = skew))
+stats_b <- data.frame(Type = "Boson", 
+                      co_var = co_var[, t_boson],
+                      skew = skew[, t_boson]
+)
+stats_u <- data.frame(Type = "Uniform", 
+                      co_var = co_var[, t_uniform],
+                      skew = skew[, t_uniform]
+)
+tot_stats <- rbind(stats_b, stats_u)
+
+centroids <- aggregate(cbind(tot_stats$co_var, tot_stats$skew)~tot_stats$type, tot_stats, mean)
+
+colnames(centroids) <- c("Type", "co_var", "skew")
+
+p <- ggplot(tot_stats, aes(x = co_var, y = skew, shape = Type, colour = Type))
 p <- p + xlim(-1.2, 0) + ylim(-6, 4)
-p <- p + stat_ellipse(color = "darkslateblue", alpha = 0.5)
-p <- p + geom_point(size = 1, alpha = 0.66, color = "slateblue")
-p <- p + geom_point(aes(x = mean(co_var), y = mean(skew)),
+p <- p + stat_ellipse(alpha = 0.5)
+p <- p + geom_point(size = 1, alpha = 0.75)
+p <- p + geom_point(data = centroids,
                     color = "black", fill = "white",
                     shape = 21, size = 1, stroke = 0.5)
 p <- p + labs(x = "Coefficient of Variation", y = "Skewness",
               title = "Statistical Analysis of Boson Sampling",
               subtitle = paste("N =", bosons, " M =", modes, sep = " "))
+
+
+pdf("2mode_correlation.pdf")
 print(p)
 dev.off()
 
